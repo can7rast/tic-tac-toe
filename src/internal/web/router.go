@@ -14,13 +14,13 @@ import (
 	"school21/internal/web/handler"
 )
 
-func SetupRouter(service domain.GameService, db *datasource.DB, authService application.AuthService) *gin.Engine {
+func SetupRouter(service domain.GameService, db *datasource.DB, authService application.AuthService, repo datasource.UserRepository) *gin.Engine {
 	gameH := handler.NewGameHandler(service, db)
 	authH := handler.NewAuthHandler(authService)
+	userH := handler.NewUserHandler(repo)
 
 	router := gin.Default()
 
-	// ← Добавь это для дебага
 	log.Printf("Регистрируем роуты: /login, /signup, /game и т.д.")
 
 	router.POST("/login", authH.Login)
@@ -31,9 +31,11 @@ func SetupRouter(service domain.GameService, db *datasource.DB, authService appl
 
 	authorized.POST("/game", gameH.CreateGame)
 	authorized.GET("/game/:id", gameH.GetGame)
-	authorized.POST("game/:id", gameH.MakeMove)
+	authorized.POST("/game/:id", gameH.MakeMove)
+	authorized.POST("/game/:id/join", gameH.JoinGame)
+	authorized.GET("/games", gameH.AvailableGames)
+	authorized.GET("/user/:id", userH.GetUser)
 
-	// ← Добавь лог после регистрации
 	log.Printf("Все API-роуты зарегистрированы. NoRoute идёт последним.")
 
 	router.NoRoute(func(c *gin.Context) {

@@ -1,13 +1,12 @@
 package handler
 
 import (
-	"encoding/base64"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"school21/internal/application"
 	"school21/internal/web/dto"
-	"strings"
+	"school21/pkg"
 )
 
 type AuthHandler struct {
@@ -33,7 +32,7 @@ func (a *AuthHandler) SignUp(c *gin.Context) {
 
 	ctx := c.Request.Context()
 	if err := a.service.SignUp(ctx, req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -47,39 +46,23 @@ func (a *AuthHandler) Login(c *gin.Context) {
 		c.Request.URL.Path, c.Request.Method, c.GetHeader("Authorization"))
 
 	authHeader := c.GetHeader("Authorization")
-	lowerHeader := strings.ToLower(authHeader)
-	if authHeader == "" || !strings.HasPrefix(lowerHeader, "basic") {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Требуется авторизация"})
-		return
-	}
-
-	payload := authHeader[6:]
-
-	decoded, err := base64.StdEncoding.DecodeString(payload)
+	login, password, err := pkg.ParseBasicAuth(authHeader)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
-	arrLogAndPassword := strings.SplitN(string(decoded), ":", 2)
-	if len(arrLogAndPassword) != 2 {
-		c.JSON(http.StatusOK, gin.H{"error": "login or password is empty"})
-	}
-	login := arrLogAndPassword[0]
-	password := arrLogAndPassword[1]
-
-	ctx := c.Request.Context()
-
 	req := dto.SignUpRequest{
 		Login:    login,
 		Password: password,
 	}
-	user, err := a.service.Login(ctx, req)
+	user, err := a.service.Login(c.Request.Context(), req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"user_id": user.ID,
+		"user_id": user.ID.String(),
 		"login":   login,
 	})
 

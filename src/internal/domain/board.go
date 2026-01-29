@@ -1,14 +1,15 @@
 package domain
 
 const (
-	// Empty Пустое поле
 	Empty = iota
+	X
+	O
+)
 
-	// Player Игрок X
-	Player
-
-	// Computer  Компьютер O
-	Computer
+const (
+	Player       = X
+	Computer     = O
+	SecondPlayer = O
 )
 
 type Board struct {

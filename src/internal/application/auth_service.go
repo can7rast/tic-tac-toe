@@ -21,14 +21,11 @@ type authService struct {
 }
 
 func (a *authService) SignUp(ctx context.Context, req dto.SignUpRequest) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	exitstUser, err := a.authRepo.FindByLogin(ctx, req.Login)
+	existsUser, err := a.authRepo.FindByLogin(ctx, req.Login)
 	if err != nil {
 		return fmt.Errorf("data base error %w", err)
 	}
-	if exitstUser != nil {
+	if existsUser != nil {
 		return fmt.Errorf("user with login %s already exists", req.Login)
 	}
 

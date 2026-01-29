@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"github.com/google/uuid"
 	"school21/internal/domain"
 	"time"
 )
@@ -11,6 +12,7 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
 	FindByLogin(ctx context.Context, login string) (*domain.User, error)
+	FindByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 }
 
 type userRepository struct {
@@ -42,6 +44,22 @@ func (u *userRepository) FindByLogin(ctx context.Context, login string) (*domain
 	}
 	return &user, err
 
+}
+
+func (u *userRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+	var user domain.User
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	err := u.db.Pool.QueryRow(ctx,
+		`SELECT id, username, password_hash
+			 FROM users
+			 WHERE id = $1`, id).Scan(&user.ID, &user.Login, &user.PasswordHash)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	return &user, err
 }
 
 func NewUserRepository(db *DB) UserRepository {

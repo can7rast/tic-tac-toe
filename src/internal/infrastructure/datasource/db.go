@@ -14,7 +14,6 @@ type DB struct {
 func NewDB(ctx context.Context, dsn string) (*DB, error) {
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
-
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 	config.MaxConns = 20
@@ -28,7 +27,7 @@ func NewDB(ctx context.Context, dsn string) (*DB, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	if err := pool.Ping(ctx); err != nil {
+	if err = pool.Ping(ctx); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 

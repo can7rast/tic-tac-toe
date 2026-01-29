@@ -1,1139 +1,329 @@
-    <!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XO Arena — крестики‑нолики против ИИ</title>
+    <title>Крестики‑нолики — на двоих и против компьютера</title>
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
         :root {
-            --accent: #6366f1;
-            --accent-2: #ec4899;
-            --bg-1: #020617;
-            --bg-2: #0f172a;
-            --bg-card: rgba(15, 23, 42, 0.9);
-            --border-subtle: rgba(148, 163, 184, 0.2);
-            --text-main: #e5e7eb;
-            --text-soft: #9ca3af;
+            --bg: #0d1117;
+            --panel: #161b22;
+            --border: #1f242c;
+            --text: #e6edf3;
+            --text-muted: #9ea7b3;
+            --accent: #3b82f6;
+            --accent-2: #10b981;
             --danger: #ef4444;
-            --success: #22c55e;
         }
-
+        * { box-sizing: border-box; }
         body {
             margin: 0;
             min-height: 100vh;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
-            "Segoe UI", sans-serif;
-            color: var(--text-main);
-            background:
-                    radial-gradient(circle at 0 0, #22d3ee11 0, transparent 50%),
-                    radial-gradient(circle at 100% 0, #a855f711 0, transparent 55%),
-                    radial-gradient(circle at 0 100%, #22c55e11 0, transparent 55%),
-                    radial-gradient(circle at 100% 100%, #f9731611 0, transparent 55%),
-                    radial-gradient(circle at 50% 50%, #0f172a 0, #020617 55%, #020617 100%);
-            overflow-x: hidden;
-        }
-
-        .bg-grid {
-            position: fixed;
-            inset: 0;
-            background-image: linear-gradient(to right, rgba(148, 163, 184, 0.06) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
-            background-size: 40px 40px;
-            opacity: 0.6;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .bg-glow {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .bg-glow::before,
-        .bg-glow::after {
-            content: "";
-            position: absolute;
-            width: 420px;
-            height: 420px;
-            border-radius: 999px;
-            filter: blur(80px);
-            opacity: 0.45;
-            mix-blend-mode: screen;
-        }
-
-        .bg-glow::before {
-            left: -120px;
-            top: 10%;
-            background: radial-gradient(circle at center, #6366f1, transparent 60%);
-        }
-
-        .bg-glow::after {
-            right: -120px;
-            bottom: 0;
-            background: radial-gradient(circle at center, #ec4899, transparent 60%);
-        }
-
-        .page {
-            max-width: 1120px;
-            margin: 0 auto;
-            padding: 24px 16px 40px;
-        }
-
-        header {
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            color: var(--text);
+            background: var(--bg);
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 28px;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-mark {
-            width: 40px;
-            height: 40px;
-            border-radius: 16px;
-            background: radial-gradient(circle at 20% 20%, #f9fafb, #e5e7eb 40%, #0f172a 100%);
-            box-shadow:
-                    0 0 0 1px rgba(148, 163, 184, 0.2),
-                    0 18px 35px rgba(15, 23, 42, 0.7);
-            display: flex;
-            align-items: center;
             justify-content: center;
-            position: relative;
-            overflow: hidden;
+            padding: 24px 12px 32px;
         }
-
-        .logo-mark span {
-            font-weight: 800;
-            font-size: 20px;
-            background: linear-gradient(135deg, #4f46e5, #ec4899);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-        }
-
-        .logo-mark::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.7), transparent 55%);
-            opacity: 0.8;
-        }
-
-        .logo-text-title {
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        .logo-text-title span {
-            background: linear-gradient(135deg, #e5e7eb, #9ca3af);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-        }
-
-        .logo-text-sub {
-            font-size: 13px;
-            color: var(--text-soft);
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 13px;
-            color: var(--text-soft);
-        }
-
-        .pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.28);
-            background: linear-gradient(to right, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.6));
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.75);
-        }
-
-        .pill-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: conic-gradient(from 0deg, #22c55e, #22c55e, #a3e635, #facc15, #22c55e);
-            box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
-        }
-
-        main {
-            display: grid;
-            grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-            gap: 24px;
-            align-items: stretch;
-        }
-
-        @media (max-width: 900px) {
-            main {
-                grid-template-columns: minmax(0, 1fr);
-            }
-        }
-
-        .hero {
-            margin-bottom: 18px;
-        }
-
-        .hero-title {
-            font-size: clamp(26px, 3.4vw, 32px);
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            margin: 0 0 10px;
-        }
-
-        .hero-title span {
-            background: linear-gradient(135deg, #e5e7eb, #f9fafb);
-            -webkit-background-clip: text;
-            color: transparent;
-        }
-
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 3px 10px;
-            border-radius: 999px;
-            border: 1px solid rgba(129, 140, 248, 0.6);
-            background: radial-gradient(circle at 0 0, rgba(129, 140, 248, 0.28), transparent 55%),
-            rgba(15, 23, 42, 0.9);
-            margin-bottom: 10px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-        }
-
-        .hero-badge-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 999px;
-            background: #22c55e;
-            box-shadow: 0 0 10px rgba(34, 197, 94, 0.9);
-        }
-
-        .hero-subtitle {
-            font-size: 14px;
-            color: var(--text-soft);
-            max-width: 520px;
-            line-height: 1.6;
-        }
-
-        .hero-subtitle b {
-            color: #e5e7eb;
-        }
-
-        .hero-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 12px;
-            font-size: 11px;
-            color: var(--text-soft);
-        }
-
-        .hero-meta-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 8px;
-            border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.22);
-            background: linear-gradient(to right, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.7));
-        }
-
-        .hero-meta-item span.icon {
-            width: 16px;
-            height: 16px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 999px;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(236, 72, 153, 0.3));
-            font-size: 11px;
-        }
-
+        .page { width: min(1080px, 100%); display: grid; gap: 16px; }
+        header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .title { font-size: 20px; font-weight: 700; }
+        .muted { color: var(--text-muted); font-size: 13px; }
+        main { display: grid; gap: 16px; grid-template-columns: 300px 1fr; }
+        @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
         .card {
-            border-radius: 22px;
-            border: 1px solid rgba(148, 163, 184, 0.28);
-            background:
-                    radial-gradient(circle at 0 0, rgba(148, 163, 184, 0.3), transparent 55%),
-                    radial-gradient(circle at 100% 100%, rgba(13, 148, 136, 0.25), transparent 55%),
-                    rgba(15, 23, 42, 0.95);
-            box-shadow:
-                    0 20px 45px rgba(15, 23, 42, 0.9),
-                    0 0 0 1px rgba(15, 23, 42, 0.85);
-            padding: 18px 18px 16px;
-            position: relative;
-            overflow: hidden;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
         }
-
-        .card::before {
-            content: "";
-            position: absolute;
-            inset: -60%;
-            background:
-                    radial-gradient(circle at 0 0, rgba(129, 140, 248, 0.5), transparent 55%),
-                    radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.4), transparent 55%);
-            opacity: 0;
-            transition: opacity 0.6s ease;
-            pointer-events: none;
-        }
-
-        .card:hover::before {
-            opacity: 0.18;
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .card-title {
-            font-size: 15px;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: #e5e7eb;
-        }
-
-        .card-title span {
-            color: #a5b4fc;
-        }
-
-        .card-caption {
-            font-size: 12px;
-            color: var(--text-soft);
-        }
-
-        .tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 3px 9px;
-            border-radius: 999px;
-            border: 1px solid rgba(129, 140, 248, 0.6);
-            background: radial-gradient(circle at 0 0, rgba(129, 140, 248, 0.3), transparent 60%);
-            font-size: 11px;
-        }
-
-        .tag span.icon {
-            font-size: 9px;
-        }
-
-        .auth-tabs {
-            display: inline-flex;
-            padding: 2px;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(148, 163, 184, 0.45);
-            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.8);
-        }
-
-        .auth-tab {
-            border: none;
-            background: transparent;
-            color: var(--text-soft);
-            font-size: 12px;
-            padding: 6px 14px;
-            border-radius: 999px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .auth-tab span.icon {
-            font-size: 13px;
-        }
-
-        .auth-tab.active {
-            background: radial-gradient(circle at 0 0, rgba(129, 140, 248, 0.7), transparent 60%);
-            color: #f9fafb;
-            box-shadow:
-                    0 0 0 1px rgba(129, 140, 248, 0.7),
-                    0 8px 18px rgba(15, 23, 42, 0.9);
-        }
-
-        .auth-form {
-            display: grid;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .field {
-            display: grid;
-            gap: 4px;
-        }
-
-        .field-label {
-            font-size: 11px;
-            color: var(--text-soft);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .field-label span.main {
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            font-weight: 600;
-            font-size: 10px;
-            color: #9ca3af;
-        }
-
-        .field-label span.meta {
-            font-size: 10px;
-            color: #6b7280;
-        }
-
-        .input {
-            border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(15, 23, 42, 0.95);
-            padding: 7px 12px;
-            color: #e5e7eb;
-            font-size: 13px;
-            outline: none;
-            transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
-        }
-
-        .input::placeholder {
-            color: #4b5563;
-        }
-
-        .input:focus {
-            border-color: rgba(129, 140, 248, 0.9);
-            box-shadow:
-                    0 0 0 1px rgba(129, 140, 248, 0.7),
-                    0 0 30px rgba(79, 70, 229, 0.45);
-            background: radial-gradient(circle at 0 0, rgba(129, 140, 248, 0.15), transparent 65%),
-            rgba(15, 23, 42, 0.95);
-        }
-
-        .auth-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 8px;
-            gap: 10px;
-            font-size: 11px;
-            color: var(--text-soft);
-        }
-
-        .btn {
-            position: relative;
-            border: none;
-            border-radius: 999px;
-            padding: 7px 16px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.14em;
-            cursor: pointer;
-            overflow: hidden;
-            color: #f9fafb;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            white-space: nowrap;
-        }
-
-        .btn-primary {
-            background:
-                    linear-gradient(135deg, #6366f1, #ec4899, #eab308);
-            -webkit-background-clip: padding-box;
-            background-clip: padding-box;
-            box-shadow:
-                    0 12px 30px rgba(79, 70, 229, 0.6),
-                    0 0 0 1px rgba(15, 23, 42, 0.9);
-        }
-
-        .btn-primary::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 0 0, rgba(255, 255, 255, 0.4), transparent 60%);
-            mix-blend-mode: soft-light;
-            opacity: 0;
-            transition: opacity 0.18s ease;
-        }
-
-        .btn-primary:hover::before {
-            opacity: 1;
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid rgba(148, 163, 184, 0.8);
-            color: var(--text-soft);
-        }
-
-        .btn-icon {
+        .card h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+        .form { display: grid; gap: 10px; }
+        label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+        input {
+            width: 100%;
+            padding: 9px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0b0f14;
+            color: var(--text);
             font-size: 14px;
         }
-
-        .btn[disabled] {
-            opacity: 0.55;
-            cursor: default;
-            box-shadow: none;
-        }
-
-        .status-line {
-            margin-top: 10px;
-            font-size: 11px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-soft);
-        }
-
-        .status-dot {
-            width: 9px;
-            height: 9px;
-            border-radius: 999px;
-            background: #6b7280;
-        }
-
-        .status-dot.ok {
-            background: #22c55e;
-            box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
-        }
-
-        .status-dot.err {
-            background: #ef4444;
-            box-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
-        }
-
-        .status-text {
-            flex: 1;
-        }
-
-        .status-text b {
-            color: #e5e7eb;
-        }
-
-        .status-secondary {
-            font-size: 10px;
-            color: #6b7280;
-        }
-
-        .game-shell {
-            display: grid;
-            grid-template-rows: auto auto 1fr auto;
-            gap: 10px;
-            height: 100%;
-        }
-
-        .game-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .game-title {
-            font-size: 13px;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #9ca3af;
-        }
-
-        .chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 9px;
-            border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.5);
-            background: linear-gradient(to right, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.7));
-            font-size: 11px;
-        }
-
-        .chip span.icon {
-            font-size: 13px;
-        }
-
-        .btn-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .btn-ghost {
-            border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.5);
-            background: radial-gradient(circle at 0 0, rgba(148, 163, 184, 0.35), transparent 60%);
-            color: #e5e7eb;
-            padding: 4px 11px;
-            font-size: 11px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-        }
-
-        .btn-ghost span.icon {
-            font-size: 13px;
-        }
-
-        .btn-ghost.secondary {
+        input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+        .tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .tab {
+            padding: 8px 12px;
+            border: none;
             background: transparent;
-            border-style: dashed;
-            color: var(--text-soft);
+            color: var(--text-muted);
+            cursor: pointer;
+            font-weight: 600;
         }
-
-        .game-main {
-            display: grid;
-            grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
-            gap: 14px;
-            align-items: stretch;
+        .tab.active { background: #0b0f14; color: var(--text); }
+        .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+        .btn {
+            border: none;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            color: white;
         }
-
-        @media (max-width: 900px) {
-            .game-main {
-                grid-template-columns: minmax(0, 1fr);
-            }
+        .primary { background: var(--accent); }
+        .secondary { background: #1f2937; color: var(--text); }
+        .pill { padding: 6px 10px; border-radius: 999px; background: #0b0f14; border: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
+        .status {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #0b0f14;
+            font-size: 13px;
+            color: var(--text-muted);
         }
-
-        .board-wrap {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .status.ok { border-color: rgba(16, 185, 129, 0.6); color: var(--accent-2); }
+        .status.err { border-color: rgba(239, 68, 68, 0.7); color: var(--danger); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .mode-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+        .mode-tab {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0b0f14;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
         }
-
+        .mode-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
         .board {
-            width: min(320px, 70vw);
-            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            width: min(360px, 90vw);
+            aspect-ratio: 1/1;
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             grid-template-rows: repeat(3, 1fr);
-            gap: 8px;
-            padding: 12px;
-            border-radius: 22px;
-            background:
-                    radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.28), transparent 55%),
-                    radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.25), transparent 55%),
-                    rgba(15, 23, 42, 0.95);
-            box-shadow:
-                    0 18px 40px rgba(15, 23, 42, 0.95),
-                    0 0 0 1px rgba(15, 23, 42, 0.9);
+            gap: 6px;
         }
-
         .cell {
-            border-radius: 18px;
-            background: radial-gradient(circle at 20% 20%, rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.98));
-            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #0b0f14;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            position: relative;
-            transition:
-                    transform 0.13s ease-out,
-                    box-shadow 0.16s ease,
-                    border-color 0.16s ease,
-                    background 0.16s ease;
-        }
-
-        .cell::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            border-radius: inherit;
-            background: radial-gradient(circle at 0 0, rgba(148, 163, 184, 0.35), transparent 60%);
-            opacity: 0;
-            transition: opacity 0.18s ease;
-        }
-
-        .cell:hover {
-            transform: translateY(-1px) scale(1.02);
-            box-shadow:
-                    0 10px 22px rgba(15, 23, 42, 0.9),
-                    0 0 0 1px rgba(129, 140, 248, 0.6);
-            border-color: rgba(129, 140, 248, 0.9);
-        }
-
-        .cell:hover::before {
-            opacity: 0.45;
-        }
-
-        .cell.disabled {
-            cursor: default;
-            opacity: 0.9;
-        }
-
-        .mark {
+            font-size: clamp(36px, 6vw, 46px);
             font-weight: 800;
-            font-size: clamp(40px, 4.6vw, 48px);
-            position: relative;
+            color: var(--text);
+            cursor: pointer;
         }
-
-        .mark-x {
-            background: linear-gradient(135deg, #f97316, #ec4899);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-            text-shadow: 0 0 22px rgba(248, 113, 113, 0.8);
+        .cell.disabled { cursor: default; opacity: 0.7; }
+        .mark-x { color: #f97316; }
+        .mark-o { color: #22c55e; }
+        .log {
+            height: 100px;
+            overflow-y: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            padding: 8px;
+            background: #0b0f14;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: ui-monospace, monospace;
         }
-
-        .mark-o {
-            background: linear-gradient(135deg, #22c55e, #22d3ee);
-            background-clip: text;
-            -webkit-background-clip: text;
-            color: transparent;
-            text-shadow: 0 0 22px rgba(56, 189, 248, 0.8);
-        }
-
-        .mark::after {
-            content: "";
-            position: absolute;
-            inset: -8px;
-            border-radius: 999px;
-            background: radial-gradient(circle at 50% 0, rgba(249, 250, 251, 0.4), transparent 55%);
-            opacity: 0.4;
-            mix-blend-mode: screen;
-        }
-
-        .status-panel {
-            display: grid;
-            grid-template-rows: auto auto 1fr;
+        .games-list { margin-top: 8px; max-height: 180px; overflow-y: auto; }
+        .games-list ul { margin: 0; padding: 0; list-style: none; }
+        .games-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             gap: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0b0f14;
+            margin-bottom: 6px;
             font-size: 12px;
         }
-
-        .status-line-main {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 8px;
-            border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.4);
-            background: rgba(15, 23, 42, 0.9);
-        }
-
-        .status-chip span.icon {
-            font-size: 13px;
-        }
-
-        .status-main-text {
-            font-size: 13px;
-        }
-
-        .status-main-text b {
-            color: #f9fafb;
-        }
-
-        .status-game-id {
-            font-size: 11px;
-            color: var(--text-soft);
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .status-game-id span.code {
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(148, 163, 184, 0.4);
-            max-width: 220px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .status-game-id button {
-            border-radius: 999px;
-            border: 1px dashed rgba(148, 163, 184, 0.6);
-            background: transparent;
-            color: var(--text-soft);
-            font-size: 10px;
-            padding: 2px 6px;
-            cursor: pointer;
-        }
-
-        .log {
-            margin-top: 4px;
-            height: 80px;
-            border-radius: 14px;
-            padding: 8px 10px;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            font-size: 11px;
-            color: #9ca3af;
-            overflow-y: auto;
-        }
-
-        .pill-mini {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 3px 7px;
-            border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.4);
-            background: rgba(15, 23, 42, 0.9);
-            font-size: 10px;
-            color: var(--text-soft);
-        }
-
-        footer {
-            margin-top: 18px;
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            font-size: 11px;
-            color: #4b5563;
-        }
-
-        @media (max-width: 600px) {
-            header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .card {
-                padding: 14px 14px 12px;
-            }
-
-            .game-main {
-                gap: 10px;
-            }
-
-            .board {
-                width: min(280px, 84vw);
-            }
-        }
+        .games-list li span { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; }
+        .games-list .join-btn { padding: 4px 8px; font-size: 11px; }
+        footer { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
     </style>
 </head>
 <body>
-<div class="bg-grid"></div>
-<div class="bg-glow"></div>
-
 <div class="page">
     <header>
-        <div class="logo">
-            <div class="logo-mark">
-                <span>XO</span>
-            </div>
-            <div>
-                <div class="logo-text-title"><span>XO ARENA</span></div>
-                <div class="logo-text-sub">Крестики‑нолики против мини‑макс ИИ на Go</div>
-            </div>
+        <div>
+            <div class="title">Крестики‑нолики</div>
+            <div class="muted">На двоих и против компьютера. Бекенд без изменений.</div>
         </div>
-        <div class="header-right">
-            <div class="pill">
-                <div class="pill-dot"></div>
-                <span>Бэкенд: Go + Gin + PostgreSQL</span>
-            </div>
-        </div>
+        <div class="pill" id="user-pill">Гость</div>
     </header>
-
-    <section class="hero">
-        <div class="hero-badge">
-            <span class="hero-badge-dot"></span>
-            <span>Онлайн‑арена 1vAI</span>
-        </div>
-        <h1 class="hero-title">
-            <span>Играйте против мощного ИИ,</span> отслеживайте партии и делитесь ссылкой на игру.
-        </h1>
-        <p class="hero-subtitle">
-            После авторизации вы можете создавать новые игры, продолжать существующие по ссылке
-            вида <b>/game/&lt;UUID&gt;</b> и смотреть, как серверный ИИ на Go отвечает на ваши ходы.
-        </p>
-        <div class="hero-meta">
-            <div class="hero-meta-item">
-                <span class="icon">⚙️</span>
-                <span>Авторизация через Basic Auth — без куков и лишней магии</span>
-            </div>
-            <div class="hero-meta-item">
-                <span class="icon">🧠</span>
-                <span>Минимакс ИИ на сервере, фронт только шлёт запросы</span>
-            </div>
-            <div class="hero-meta-item">
-                <span class="icon">🔗</span>
-                <span>Каждой игре — свой UUID и шэринг по ссылке</span>
-            </div>
-        </div>
-    </section>
 
     <main>
         <section class="card" id="auth-card">
-            <div class="card-header">
+            <h3>Авторизация</h3>
+            <div class="tabs" role="tablist">
+                <button type="button" class="tab active" id="tab-login">Вход</button>
+                <button type="button" class="tab" id="tab-signup">Регистрация</button>
+            </div>
+            <form class="form" id="auth-form" autocomplete="on">
                 <div>
-                    <div class="card-title">Панель <span>авторизации</span></div>
-                    <div class="card-caption">Создайте аккаунт или войдите, чтобы начать игру</div>
+                    <label for="login-input">Логин</label>
+                    <input id="login-input" name="login" placeholder="player01" required>
                 </div>
-                <div class="tag">
-                    <span class="icon">🔐</span>
-                    <span>Basic Auth</span>
+                <div>
+                    <label for="password-input">Пароль</label>
+                    <input id="password-input" name="password" type="password" placeholder="••••••" required>
                 </div>
-            </div>
-
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
-                <div class="auth-tabs" role="tablist">
-                    <button type="button" class="auth-tab active" data-mode="login" id="tab-login">
-                        <span class="icon">➡️</span>
-                        <span>Вход</span>
-                    </button>
-                    <button type="button" class="auth-tab" data-mode="signup" id="tab-signup">
-                        <span class="icon">✨</span>
-                        <span>Регистрация</span>
-                    </button>
-                </div>
-                <span class="pill-mini">
-                    <span>👤</span>
-                    <span id="current-user-label">Гость</span>
-                </span>
-            </div>
-
-            <form class="auth-form" id="auth-form" autocomplete="on">
-                <div class="field">
-                    <label class="field-label" for="login-input">
-                        <span class="main">Логин</span>
-                        <span class="meta">Хранится только в localStorage</span>
-                    </label>
-                    <input id="login-input" class="input" name="login" placeholder="например, player01" required>
-                </div>
-                <div class="field">
-                    <label class="field-label" for="password-input">
-                        <span class="main">Пароль</span>
-                        <span class="meta">Отправляется в Basic Auth заголовке</span>
-                    </label>
-                    <input id="password-input" class="input" name="password" type="password" placeholder="минимум 4 символа" required>
-                </div>
-
-                <div class="auth-footer">
-                    <button type="submit" class="btn btn-primary" id="auth-submit">
-                        <span class="btn-icon" id="auth-submit-icon">➡️</span>
-                        <span id="auth-submit-label">Войти</span>
-                    </button>
-                    <button type="button" class="btn btn-outline" id="logout-btn" style="display:none;">
-                        <span class="btn-icon">🚪</span>
-                        <span>Выйти</span>
-                    </button>
+                <div class="row">
+                    <button type="submit" class="btn primary" id="auth-submit">Войти</button>
+                    <button type="button" class="btn secondary" id="logout-btn" style="display:none;">Выйти</button>
                 </div>
             </form>
-
-            <div class="status-line" id="auth-status-line">
-                <span class="status-dot" id="auth-status-dot"></span>
-                <div class="status-text">
-                    <div id="auth-status-main">Введите логин и пароль, чтобы начать.</div>
-                    <div class="status-secondary" id="auth-status-secondary">При регистрации логин должен быть уникальным.</div>
-                </div>
-            </div>
+            <div class="status" id="auth-status">Войдите или зарегистрируйтесь.</div>
         </section>
 
-        <section class="card">
-            <div class="game-shell">
-                <div class="game-top">
-                    <div class="game-title">Игровая панель <span style="color:#a5b4fc;">/game</span></div>
-                    <div class="chip">
-                        <span class="icon">🧠</span>
-                        <span>ИИ ходит на сервере, фронт только отображает поле</span>
-                    </div>
-                </div>
-
-                <div class="btn-group">
-                    <button type="button" class="btn-ghost" id="new-game-btn">
-                        <span class="icon">🎮</span>
-                        <span>Новая игра</span>
-                    </button>
-                    <button type="button" class="btn-ghost secondary" id="reload-current-btn">
-                        <span class="icon">🔁</span>
-                        <span>Перезагрузить текущую</span>
-                    </button>
-                    <button type="button" class="btn-ghost secondary" id="from-url-btn">
-                        <span class="icon">🔗</span>
-                        <span>Загрузить по URL</span>
-                    </button>
-                </div>
-
-                <div class="game-main">
-                    <div class="board-wrap">
-                        <div class="board" id="board">
-                            <!-- клетки генерируются скриптом -->
-                        </div>
-                    </div>
-                    <div class="status-panel">
-                        <div class="status-line-main">
-                            <div class="status-chip">
-                                <span class="icon">📡</span>
-                                <span id="turn-indicator">Ожидание авторизации…</span>
-                            </div>
-                        </div>
-
-                        <div class="status-game-id">
-                            <span>
-                                Текущая игра:
-                                <span class="code" id="game-id-label">—</span>
-                            </span>
-                            <button type="button" id="copy-link-btn">Копировать ссылку</button>
-                        </div>
-
-                        <div>
-                            <div class="log" id="log"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="status-line">
-                    <span class="status-dot" id="game-status-dot"></span>
-                    <div class="status-text">
-                        <div id="game-status-main">Авторизуйтесь, затем нажмите «Новая игра».</div>
-                        <div class="status-secondary" id="game-status-secondary">
-                            Сервисы: <b>POST /login</b>, <b>POST /signup</b>, <b>POST /game</b>, <b>GET/POST /game/:id</b>.
-                        </div>
-                    </div>
-                </div>
+        <section class="card" id="game-card">
+            <div class="row">
+                <h3>Игра</h3>
+                <div class="pill" id="game-id">—</div>
             </div>
+
+            <div class="mode-tabs" id="mode-tabs">
+                <button type="button" class="mode-tab active" data-mode="ai">Против компьютера</button>
+                <button type="button" class="mode-tab" data-mode="pvp">На двоих</button>
+            </div>
+            <div class="grid-2">
+                <button type="button" class="btn primary" id="new-game-btn">Новая игра</button>
+                <button type="button" class="btn secondary" id="reload-btn">Обновить</button>
+                <button type="button" class="btn secondary" id="join-btn" style="display:none;">Присоединиться</button>
+                <button type="button" class="btn secondary" id="copy-link-btn">Копировать ссылку</button>
+            </div>
+            <div class="status" id="game-status">Выберите режим и нажмите «Новая игра».</div>
+
+            <div id="available-block" style="display:none;">
+                <h4 style="margin:0 0 6px; font-size:13px; color: var(--text-muted);">Доступные игры (на двоих)</h4>
+                <div class="games-list" id="games-list"></div>
+                <button type="button" class="btn secondary" id="refresh-games-btn" style="margin-top:6px;">Обновить список</button>
+            </div>
+
+            <div class="board" id="board"></div>
+            <div class="status" id="turn-indicator">—</div>
+            <div class="log" id="log"></div>
         </section>
     </main>
-
-    <footer>
-        <div>UI: ванильный JS + адаптивная вёрстка, без изменения Go‑бэкенда.</div>
-        <div>Поддерживаются прямые ссылки формата <b>/game/&lt;UUID&gt;</b> при наличии авторизации.</div>
-    </footer>
+    <footer>Режимы: против компьютера (POST /game?vs=computer), на двоих (POST /game, POST /game/:id/join). Ходы: POST /game/:id.</footer>
 </div>
 
 <script>
-    // === Конфиг и утилиты ===
-    const API_BASE = window.location.origin; // тот же хост/порт, что и у бэка
+(function () {
+    const API_BASE = window.location.origin;
+    const $ = (id) => document.getElementById(id);
 
-    function $(id) {
-        return document.getElementById(id);
-    }
+    const STATE = { Waiting: 0, TurnX: 1, TurnO: 2, Draw: 3, WinX: 4, WinO: 5 };
 
     function logLine(msg) {
-        const logEl = $("log");
+        const el = $("log");
         const line = document.createElement("div");
-        const time = new Date().toLocaleTimeString();
-        line.textContent = "[" + time + "] " + msg;
-        logEl.appendChild(line);
-        logEl.scrollTop = logEl.scrollHeight;
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        el.appendChild(line);
+        el.scrollTop = el.scrollHeight;
     }
 
-    function setAuthStatus({ ok, text, secondary }) {
-        const dot = $("auth-status-dot");
-        const main = $("auth-status-main");
-        const sub = $("auth-status-secondary");
-
-        dot.classList.remove("ok", "err");
-        if (ok === true) {
-            dot.classList.add("ok");
-        } else if (ok === false) {
-            dot.classList.add("err");
-        }
-        if (text !== undefined) main.innerHTML = text;
-        if (secondary !== undefined) sub.innerHTML = secondary;
+    function setStatus(id, text, kind) {
+        const el = $(id);
+        if (!el) return;
+        el.textContent = text;
+        el.classList.remove("ok", "err");
+        if (kind === "ok") el.classList.add("ok");
+        if (kind === "err") el.classList.add("err");
     }
 
-    function setGameStatus({ state, text, secondary }) {
-        const dot = $("game-status-dot");
-        const main = $("game-status-main");
-        const sub = $("game-status-secondary");
-
-        dot.classList.remove("ok", "err");
-        if (state === "ok") dot.classList.add("ok");
-        if (state === "err") dot.classList.add("err");
-        if (text !== undefined) main.innerHTML = text;
-        if (secondary !== undefined) sub.innerHTML = secondary;
-    }
-
-    function setTurnIndicator(text) {
-        $("turn-indicator").innerHTML = text;
-    }
-
-    function setGameId(id) {
-        $("game-id-label").textContent = id || "—";
-    }
-
-    function basicHeader(login, password) {
-        const payload = btoa(login + ":" + password);
-        return "Basic " + payload;
-    }
-
-    function getStoredCreds() {
-        const raw = window.localStorage.getItem("xoArenaCreds");
-        if (!raw) return null;
+    const storageKey = "xoCreds";
+    // Храним креды в sessionStorage, чтобы каждая вкладка могла быть под своим пользователем
+    function getCreds() {
         try {
-            const data = JSON.parse(raw);
-            if (!data.login || !data.password) return null;
-            return data;
-        } catch {
-            return null;
-        }
+            const s = window.sessionStorage;
+            const raw = s.getItem(storageKey);
+            if (!raw) return null;
+            const p = JSON.parse(raw);
+            if (p.login && p.password) return p;
+        } catch (_) {}
+        return null;
     }
-
-    function storeCreds(login, password) {
-        window.localStorage.setItem("xoArenaCreds", JSON.stringify({ login, password }));
+    function saveCreds(login, password) {
+        try {
+            window.sessionStorage.setItem(storageKey, JSON.stringify({ login, password }));
+        } catch (_) {}
     }
-
     function clearCreds() {
-        window.localStorage.removeItem("xoArenaCreds");
+        try {
+            window.sessionStorage.removeItem(storageKey);
+        } catch (_) {}
     }
+    function basicHeader(login, password) { return "Basic " + btoa(login + ":" + password); }
 
-    // === Состояние игры ===
     let gameId = null;
-    let board = [
-        [0, 0, 0],
-        [0, 0, 0],
-        [0, 0, 0]
-    ];
+    let board = [[0,0,0],[0,0,0],[0,0,0]];
     let gameOver = false;
-    let isBusy = false;
+    let state = STATE.Waiting;
+    let vsAI = true;
+    let player1 = null;
+    let player2 = null;
+    let busy = false;
+    let createdThisSession = false;
+    let pollTimer = null;
 
-    function setBusy(flag) {
-        isBusy = flag;
-        $("auth-submit").disabled = flag;
-        $("new-game-btn").disabled = flag;
-        $("reload-current-btn").disabled = flag;
-        $("from-url-btn").disabled = flag;
+    function setBusy(v) {
+        busy = v;
+        ["auth-submit","new-game-btn","reload-btn","join-btn","copy-link-btn","refresh-games-btn"].forEach(id => {
+            const e = $(id);
+            if (e) e.disabled = v;
+        });
     }
 
-    // === Рендер поля ===
+    function applyGameData(data) {
+        if (!data) return;
+        gameId = data.id || gameId;
+        if (data.board) board = data.board.map(r => [...r]);
+        gameOver = !!data.gameOver;
+        if (typeof data.state === "number") state = data.state;
+        if (typeof data.vsAI === "boolean") vsAI = data.vsAI;
+        if (data.player1) player1 = data.player1;
+        if (data.player2 !== undefined) player2 = data.player2;
+        if (state === STATE.TurnO && !player2) vsAI = true;
+    }
+
+    function canMove() {
+        if (gameOver || busy || !gameId) return false;
+        if (state === STATE.Waiting || state === STATE.Draw || state === STATE.WinX || state === STATE.WinO) return false;
+        if (vsAI) return state === STATE.TurnX;
+        return state === STATE.TurnX || state === STATE.TurnO;
+    }
+
+    function whoseTurnStr() {
+        if (state === STATE.TurnX) return vsAI ? "Ваш ход (X)" : "Ход X";
+        if (state === STATE.TurnO) return vsAI ? "Ход компьютера…" : "Ход O";
+        if (state === STATE.Waiting) return "Ожидание второго игрока";
+        if (state === STATE.WinX) return "Победа X";
+        if (state === STATE.WinO) return vsAI ? "Победа компьютера" : "Победа O";
+        if (state === STATE.Draw) return "Ничья";
+        return "—";
+    }
+
     function renderBoard() {
-        const boardEl = $("board");
-        boardEl.innerHTML = "";
+        const container = $("board");
+        container.innerHTML = "";
         for (let r = 0; r < 3; r++) {
             for (let c = 0; c < 3; c++) {
                 const cell = document.createElement("div");
                 cell.className = "cell";
                 cell.dataset.row = r;
                 cell.dataset.col = c;
-                cell.addEventListener("click", () => handleCellClick(r, c));
-                boardEl.appendChild(cell);
+                cell.addEventListener("click", () => handleCell(r, c));
+                container.appendChild(cell);
             }
         }
         updateBoardView();
@@ -1141,106 +331,114 @@
 
     function updateBoardView() {
         const cells = $("board").children;
-        for (let i = 0; i < cells.length; i++) {
-            const r = Math.floor(i / 3);
-            const c = i % 3;
-            const value = board[r][c];
+        for (let i = 0; i < 9; i++) {
+            const r = Math.floor(i / 3), c = i % 3;
+            const v = board[r][c];
             const cell = cells[i];
-            cell.classList.toggle("disabled", gameOver);
-            cell.innerHTML = "";
-            if (value === 1 || value === 2) {
-                const span = document.createElement("span");
-                span.className = "mark " + (value === 1 ? "mark-x" : "mark-o");
-                span.textContent = value === 1 ? "X" : "O";
-                cell.appendChild(span);
-            }
+            cell.classList.toggle("disabled", gameOver || !canMove());
+            cell.textContent = v === 1 ? "X" : v === 2 ? "O" : "";
+            cell.classList.toggle("mark-x", v === 1);
+            cell.classList.toggle("mark-o", v === 2);
         }
     }
 
-    // === API вызовы ===
+    function stopPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    async function pollGameOnce() {
+        if (!gameId || vsAI || gameOver || busy) return;
+        try {
+            const data = await apiGetGame(gameId);
+            applyGameData(data);
+            updateBoardView();
+            updateTurnUI();
+        } catch (_) {
+            // игнорируем ошибки поллинга, чтобы не спамить статусами
+        }
+    }
+
+    function startPolling() {
+        stopPolling();
+        if (!gameId || vsAI || gameOver) return;
+        pollTimer = setInterval(pollGameOnce, 2000);
+    }
+
+    function updateTurnUI() {
+        setStatus("turn-indicator", whoseTurnStr(), gameOver ? (state === STATE.WinX ? "ok" : state === STATE.WinO ? "err" : "ok") : undefined);
+        const joinBtn = $("join-btn");
+        if (joinBtn) {
+            joinBtn.style.display = (state === STATE.Waiting && gameId) ? "inline-block" : "none";
+        }
+        if (gameOver) {
+            stopPolling();
+        }
+        updateBoardView();
+    }
+
     async function apiSignup(login, password) {
         const res = await fetch(API_BASE + "/signup", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({ login, password })
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-            throw new Error(data.error || "Ошибка регистрации");
-        }
+        if (!res.ok) throw new Error(data.error || "Ошибка регистрации");
         return data;
     }
 
     async function apiLogin(login, password) {
         const res = await fetch(API_BASE + "/login", {
             method: "POST",
-            headers: {
-                "Authorization": basicHeader(login, password),
-                "Accept": "application/json"
-            }
+            headers: { "Authorization": basicHeader(login, password), "Accept": "application/json" }
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-            throw new Error(data.error || "Ошибка авторизации");
-        }
-        if (data.error) {
-            throw new Error(data.error);
-        }
+        if (!res.ok || data.error) throw new Error(data.error || "Ошибка входа");
         return data;
     }
 
-    async function apiCreateGame() {
-        const creds = getStoredCreds();
-        if (!creds) {
-            throw new Error("Нет сохранённых учётных данных. Сначала авторизуйтесь.");
-        }
-        const res = await fetch(API_BASE + "/game", {
+    async function apiCreateGame(vsComputer) {
+        const creds = getCreds();
+        if (!creds) throw new Error("Нужна авторизация");
+        const url = vsComputer ? API_BASE + "/game?vs=computer" : API_BASE + "/game";
+        const res = await fetch(url, {
             method: "POST",
-            headers: {
-                "Authorization": basicHeader(creds.login, creds.password),
-                "Accept": "application/json"
-            }
+            headers: { "Authorization": basicHeader(creds.login, creds.password), "Accept": "application/json" }
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-            throw new Error(data.error || "Не удалось создать игру");
-        }
+        if (!res.ok) throw new Error(data.error || "Не удалось создать игру");
         return data;
     }
 
     async function apiGetGame(id) {
-        const creds = getStoredCreds();
-        if (!creds) {
-            throw new Error("Нет сохранённых учётных данных. Сначала авторизуйтесь.");
-        }
+        const creds = getCreds();
+        if (!creds) throw new Error("Нужна авторизация");
         const res = await fetch(API_BASE + "/game/" + encodeURIComponent(id), {
-            method: "GET",
-            headers: {
-                "Authorization": basicHeader(creds.login, creds.password),
-                "Accept": "application/json"
-            }
+            headers: { "Authorization": basicHeader(creds.login, creds.password), "Accept": "application/json" }
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-            if (data.error) throw new Error(data.error);
-            if (res.status === 404) throw new Error("Игра не найдена");
-            if (res.status === 400) throw new Error("Неверный формат ID игры");
-            throw new Error("Ошибка сервера: " + res.status);
-        }
-        if (data.error) {
-            throw new Error(data.error);
-        }
+        if (!res.ok) throw new Error(data.error || "Не удалось загрузить игру");
         return data;
     }
 
-    async function apiMakeMove(id, boardState) {
-        const creds = getStoredCreds();
-        if (!creds) {
-            throw new Error("Нет сохранённых учётных данных. Сначала авторизуйтесь.");
-        }
+    async function apiJoinGame(id) {
+        const creds = getCreds();
+        if (!creds) throw new Error("Нужна авторизация");
+        const res = await fetch(API_BASE + "/game/" + encodeURIComponent(id) + "/join", {
+            method: "POST",
+            headers: { "Authorization": basicHeader(creds.login, creds.password), "Accept": "application/json" }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Не удалось присоединиться");
+        return data;
+    }
+
+    async function apiMakeMove(id, boardState, currentPlayer) {
+        const creds = getCreds();
+        if (!creds) throw new Error("Нужна авторизация");
         const res = await fetch(API_BASE + "/game/" + encodeURIComponent(id), {
             method: "POST",
             headers: {
@@ -1248,332 +446,203 @@
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             },
-            body: JSON.stringify({
-                id: id,
-                board: boardState,
-                currentPlayer: 1
-            })
+            body: JSON.stringify({ id, board: boardState, currentPlayer })
         });
         const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-            throw new Error(data.error || "Не удалось выполнить ход");
-        }
-        if (data.error) {
-            throw new Error(data.error);
-        }
+        if (!res.ok) throw new Error(data.error || "Ошибка хода");
         return data;
     }
 
-    // === Игровая логика на фронте (минимум, всё основное — на бэке) ===
-    async function handleCellClick(row, col) {
-        if (isBusy || gameOver) return;
-        if (board[row][col] !== 0) return;
-        if (!gameId) {
-            setGameStatus({
-                state: "err",
-                text: "Игра ещё не создана.",
-                secondary: "Нажмите «Новая игра», чтобы получить UUID и ссылку."
-            });
-            return;
-        }
-
-        const creds = getStoredCreds();
-        if (!creds) {
-            setGameStatus({
-                state: "err",
-                text: "Нет авторизации.",
-                secondary: "Авторизуйтесь слева, чтобы ходить."
-            });
-            return;
-        }
-
-        board[row][col] = 1;
-        updateBoardView();
-        setGameStatus({
-            state: undefined,
-            text: "Отправляем ваш ход на сервер…",
-            secondary: "Сервер проверит корректность и сделает ответный ход ИИ."
+    async function apiAvailableGames() {
+        const creds = getCreds();
+        if (!creds) throw new Error("Нужна авторизация");
+        const res = await fetch(API_BASE + "/games", {
+            headers: { "Authorization": basicHeader(creds.login, creds.password), "Accept": "application/json" }
         });
-        setTurnIndicator("Ваш ход отправлен, ждём ответа сервера…");
-        logLine("Ход игрока: (" + row + ", " + col + ")");
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Не удалось загрузить список");
+        return Array.isArray(data) ? data : (data.games || []);
+    }
+
+    async function handleCell(r, c) {
+        if (!canMove() || board[r][c] !== 0) return;
+        const sign = state === STATE.TurnX ? 1 : 2;
+        const prev = board[r][c];
+        board[r][c] = sign;
+        updateBoardView();
+        setStatus("game-status", "Отправка хода…", undefined);
+        setStatus("turn-indicator", "Ждём ответ сервера…", undefined);
 
         try {
             setBusy(true);
-            const data = await apiMakeMove(gameId, board);
-            board = data.board || board;
-            gameOver = !!data.gameOver;
-            updateBoardView();
+            const data = await apiMakeMove(gameId, board.map(x => x.slice()), sign);
+            applyGameData(data);
 
-            if (gameOver) {
-                if (data.winner === 1) {
-                    setGameStatus({
-                        state: "ok",
-                        text: "🎉 Вы выиграли! Классная партия.",
-                        secondary: "Можете создать новую игру или поделиться ссылкой на эту."
-                    });
-                    setTurnIndicator("Партия завершена: победа игрока X.");
-                } else if (data.winner === 2) {
-                    setGameStatus({
-                        state: "ok",
-                        text: "🤖 ИИ победил в этой партии.",
-                        secondary: "Попробуйте ещё раз — минимакс не сдаётся так просто."
-                    });
-                    setTurnIndicator("Партия завершена: победа ИИ (O).");
-                } else {
-                    setGameStatus({
-                        state: "ok",
-                        text: "🤝 Ничья! Сильная игра.",
-                        secondary: "Вы можете начать новую игру с теми же учётками."
-                    });
-                    setTurnIndicator("Партия завершена: ничья.");
-                }
-                logLine("Партия завершена, результат: " + (data.winner === 1 ? "победа игрока" : data.winner === 2 ? "победа ИИ" : "ничья"));
-            } else {
-                setGameStatus({
-                    state: "ok",
-                    text: "Ход обработан, теперь снова ваша очередь.",
-                    secondary: "ИИ уже сделал ход O, посмотрите на поле."
-                });
-                setTurnIndicator("Ваш ход (X).");
-            }
-        } catch (e) {
-            console.error(e);
-            logLine("Ошибка при ходе: " + e.message);
-            setGameStatus({
-                state: "err",
-                text: "Ошибка при ходе: " + e.message,
-                secondary: "Поле будет обновлено после успешного ответа от сервера."
-            });
-            // Попробуем перезагрузить игру с сервера, чтобы не оставить фронт в неконсистентном состоянии.
-            if (gameId) {
+            // Для игр против компьютера бэкенд сначала записывает ход ИИ в БД,
+            // а в ответ может вернуть ещё старое состояние. Добираем актуальное
+            // состояние отдельным GET, чтобы увидеть нолик.
+            if (vsAI && gameId) {
                 try {
-                    const data = await apiGetGame(gameId);
-                    board = data.board || board;
-                    gameOver = !!data.gameOver;
-                    updateBoardView();
-                    logLine("Поле синхронизировано с сервером после ошибки.");
-                } catch (e2) {
-                    logLine("Не удалось обновить поле после ошибки: " + e2.message);
-                }
+                    const fresh = await apiGetGame(gameId);
+                    applyGameData(fresh);
+                } catch (_) {}
             }
-        } finally {
-            setBusy(false);
-        }
-    }
 
-    async function createNewGame() {
-        const creds = getStoredCreds();
-        if (!creds) {
-            setGameStatus({
-                state: "err",
-                text: "Сначала авторизуйтесь слева.",
-                secondary: "Логин/пароль будут использоваться в Basic Auth для /game."
-            });
-            return;
-        }
-        setBusy(true);
-        setGameStatus({
-            state: undefined,
-            text: "Создаём новую игру через POST /game…",
-            secondary: "После создания вы получите UUID и ссылку для шэринга."
-        });
-        setTurnIndicator("Создаём новую игру…");
-        logLine("Запрос на создание новой игры.");
-
-        try {
-            const data = await apiCreateGame();
-            if (!data || !data.id) {
-                throw new Error("Сервер вернул неожиданный ответ");
-            }
-            gameId = data.id;
-            board = data.board || board;
-            gameOver = !!data.gameOver;
             updateBoardView();
-            setGameId(gameId);
-            const gameUrl = "/game/" + gameId;
-            window.history.replaceState(null, "", gameUrl);
-            setGameStatus({
-                state: "ok",
-                text: "Игра создана! Ваш ход (X).",
-                secondary: "Ссылку на эту игру можно скопировать в правом нижнем блоке."
-            });
-            setTurnIndicator("Ваш ход (X).");
-            logLine("Создана новая игра: " + gameId);
-        } catch (e) {
-            console.error(e);
-            logLine("Ошибка создания игры: " + e.message);
-            setGameStatus({
-                state: "err",
-                text: "Не удалось создать игру: " + e.message,
-                secondary: "Проверьте, что бэкенд запущен и вы авторизованы."
-            });
-        } finally {
-            setBusy(false);
-        }
-    }
+            updateTurnUI();
 
-    async function loadGameById(id) {
-        if (!id || !id.trim()) {
-            setGameStatus({
-                state: "err",
-                text: "Пустой ID игры.",
-                secondary: "UUID должен быть вида xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx."
-            });
-            return;
-        }
-        const cleanId = id.trim().split("/")[0].split("?")[0].replace(/['"]/g, "");
-        setBusy(true);
-        setGameStatus({
-            state: undefined,
-            text: "Загружаем игру " + cleanId + "…",
-            secondary: "Используем GET /game/:id c Accept: application/json."
-        });
-        setTurnIndicator("Загружаем существующую игру…");
-        logLine("Запрос на загрузку игры " + cleanId);
-
-        try {
-            const data = await apiGetGame(cleanId);
-            if (!data || !data.id) {
-                throw new Error("Сервер вернул неожиданный ответ");
-            }
-            gameId = data.id;
-            board = data.board || board;
-            gameOver = !!data.gameOver;
-            updateBoardView();
-            setGameId(gameId);
-            const gameUrl = "/game/" + gameId;
-            window.history.replaceState(null, "", gameUrl);
-                if (gameOver) {
-                if (data.winner === 1) {
-                    setGameStatus({
-                        state: "ok",
-                        text: "Игра уже завершена — победа X.",
-                        secondary: "Можете создать новую игру или посмотреть поле."
-                    });
-                    setTurnIndicator("Партия завершена: победа X.");
-                } else if (data.winner === 2) {
-                    setGameStatus({
-                        state: "ok",
-                        text: "Игра уже завершена — победа O.",
-                        secondary: "Используйте эту партию как разбор или начните новую."
-                    });
-                    setTurnIndicator("Партия завершена: победа O.");
-                } else {
-                    setGameStatus({
-                        state: "ok",
-                        text: "Игра уже завершена ничьёй.",
-                        secondary: "Нажмите «Новая игра», чтобы начать заново."
-                    });
-                    setTurnIndicator("Партия завершена: ничья.");
-                }
+            if (data.gameOver) {
+                if (data.winner === 1) setStatus("game-status", "Победа X!", "ok");
+                else if (data.winner === 2) setStatus("game-status", vsAI ? "Победа компьютера." : "Победа O.", vsAI ? "err" : "ok");
+                else setStatus("game-status", "Ничья.", "ok");
             } else {
-                setGameStatus({
-                    state: "ok",
-                    text: "Игра восстановлена. Ваш ход (X).",
-                    secondary: "Сделайте ход, сервер проверит и ответит ИИ‑ходом."
-                });
-                setTurnIndicator("Ваш ход (X).");
+                setStatus("game-status", "Ход принят.", "ok");
             }
-            logLine("Игра загружена: " + gameId);
+            logLine("Ход " + (sign === 1 ? "X" : "O") + " (" + r + "," + c + ")");
         } catch (e) {
-            console.error(e);
-            logLine("Ошибка загрузки игры: " + e.message);
-            setGameStatus({
-                state: "err",
-                text: "Не удалось загрузить игру: " + e.message,
-                secondary: "Проверьте UUID, авторизацию и доступность сервера."
-            });
+            board[r][c] = prev;
+            updateBoardView();
+            updateTurnUI();
+            logLine("Ошибка хода: " + e.message);
+            setStatus("game-status", "Ошибка: " + e.message, "err");
+            try {
+                const data = await apiGetGame(gameId);
+                applyGameData(data);
+                updateBoardView();
+                updateTurnUI();
+            } catch (_) {}
         } finally {
             setBusy(false);
         }
     }
 
-    // === Авторизация UI ===
-    function applyAuthMode(mode) {
-        const isLogin = mode === "login";
-        $("tab-login").classList.toggle("active", isLogin);
-        $("tab-signup").classList.toggle("active", !isLogin);
-        $("auth-submit-label").textContent = isLogin ? "Войти" : "Создать аккаунт";
-        $("auth-submit-icon").textContent = isLogin ? "➡️" : "✨";
-        if (isLogin) {
-            setAuthStatus({
-                ok: undefined,
-                text: "Введите логин и пароль, затем нажмите «Войти».",
-                secondary: "Если у вас ещё нет аккаунта — переключитесь на «Регистрация»."
-            });
-        } else {
-            setAuthStatus({
-                ok: undefined,
-                text: "Придумайте логин и пароль, затем нажмите «Создать аккаунт».",
-                secondary: "Логин должен быть уникальным; пароль хранится на сервере в хеше."
-            });
+    async function createGame() {
+        const vsComputer = ($("mode-tabs") && $("mode-tabs").querySelector(".mode-tab.active")?.dataset.mode === "ai");
+        try {
+            setBusy(true);
+            setStatus("game-status", "Создаём игру…", undefined);
+            const data = await apiCreateGame(vsComputer);
+            applyGameData(data);
+            createdThisSession = true;
+            if ($("game-id")) $("game-id").textContent = gameId ? String(gameId).slice(0, 8) + "…" : "—";
+            history.replaceState(null, "", "/game/" + (gameId || ""));
+            updateTurnUI();
+            if (!vsAI) startPolling();
+            setStatus("game-status", vsComputer ? "Игра с компьютером создана. Ваш ход (X)." : "Игра на двоих создана. Поделитесь ссылкой.", "ok");
+            logLine("Создана игра " + (vsComputer ? "против ИИ" : "на двоих") + ": " + gameId);
+        } catch (e) {
+            logLine("Ошибка создания: " + e.message);
+            setStatus("game-status", "Ошибка: " + e.message, "err");
+        } finally {
+            setBusy(false);
         }
     }
 
-    async function handleAuthSubmit(event) {
-        event.preventDefault();
-        if (isBusy) return;
-        const login = $("login-input").value.trim();
-        const password = $("password-input").value;
-        if (!login || !password) {
-            setAuthStatus({
-                ok: false,
-                text: "Логин и пароль обязательны.",
-                secondary: "Поля не должны быть пустыми."
-            });
+    async function loadGame(id) {
+        const clean = (id || "").trim().split("/")[0].split("?")[0];
+        if (!clean) {
+            setStatus("game-status", "Укажите ID игры.", "err");
             return;
         }
-
-        const mode = $("tab-login").classList.contains("active") ? "login" : "signup";
-        setBusy(true);
         try {
-            if (mode === "signup") {
-                setAuthStatus({
-                    ok: undefined,
-                    text: "Регистрируем пользователя…",
-                    secondary: "POST /signup с JSON‑телом {login, password}."
-                });
-                logLine("Регистрация пользователя " + login);
-                await apiSignup(login, password);
-                setAuthStatus({
-                    ok: true,
-                    text: "Пользователь успешно создан. Теперь можно войти.",
-                    secondary: "Переключитесь на вкладку «Вход» и используйте эти же данные."
-                });
-                logLine("Пользователь " + login + " зарегистрирован.");
-                applyAuthMode("login");
-        } else {
-                setAuthStatus({
-                    ok: undefined,
-                    text: "Проверяем логин/пароль через /login…",
-                    secondary: "POST /login с заголовком Authorization: Basic …"
-                });
-                logLine("Авторизация пользователя " + login);
+            setBusy(true);
+            setStatus("game-status", "Загрузка…", undefined);
+            const data = await apiGetGame(clean);
+            applyGameData(data);
+            createdThisSession = false;
+            if ($("game-id")) $("game-id").textContent = gameId ? String(gameId).slice(0, 8) + "…" : "—";
+            history.replaceState(null, "", "/game/" + (gameId || ""));
+            updateTurnUI();
+            if (!vsAI) startPolling();
+            setStatus("game-status", state === STATE.Waiting ? "Ожидание второго игрока. Поделитесь ссылкой или нажмите «Присоединиться» у второго игрока." : "Игра загружена.", "ok");
+            logLine("Загружена игра " + gameId);
+        } catch (e) {
+            logLine("Ошибка загрузки: " + e.message);
+            setStatus("game-status", "Ошибка: " + e.message, "err");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function joinGame() {
+        if (!gameId) return;
+        try {
+            setBusy(true);
+            setStatus("game-status", "Присоединяемся…", undefined);
+            await apiJoinGame(gameId);
+            const data = await apiGetGame(gameId);
+            applyGameData(data);
+            updateTurnUI();
+            setStatus("game-status", "Вы второй игрок (O). Ждите ход X или начинайте, если уже ваша очередь.", "ok");
+            logLine("Присоединились к игре " + gameId);
+        } catch (e) {
+            logLine("Ошибка присоединения: " + e.message);
+            setStatus("game-status", "Ошибка: " + e.message, "err");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function refreshGamesList() {
+        try {
+            setBusy(true);
+            const list = await apiAvailableGames();
+            const wrap = $("games-list");
+            const block = $("available-block");
+            if (!wrap || !block) return;
+            block.style.display = "block";
+            wrap.innerHTML = "";
+            const ul = document.createElement("ul");
+            list.forEach(g => {
+                const li = document.createElement("li");
+                const id = g.id || g.ID;
+                const vs = g.vsAI || g.vsAi;
+                if (vs) return;
+                li.innerHTML = "<span>Игра " + (id ? String(id).slice(0, 8) + "…" : "?") + "</span>";
+                const a = document.createElement("a");
+                a.href = "/game/" + (id || "");
+                a.className = "btn secondary join-btn";
+                a.textContent = "Открыть";
+                a.onclick = (ev) => { ev.preventDefault(); history.pushState(null, "", "/game/" + id); loadGame(id); };
+                li.appendChild(a);
+                ul.appendChild(li);
+            });
+            wrap.appendChild(ul);
+            if (list.length === 0) wrap.innerHTML = "<p class='muted' style='margin:0; font-size:12px;'>Нет доступных игр. Создайте игру «На двоих».</p>";
+            setStatus("game-status", "Список обновлён.", "ok");
+        } catch (e) {
+            setStatus("game-status", "Ошибка списка: " + e.message, "err");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function handleAuthSubmit(ev) {
+        ev.preventDefault();
+        if (busy) return;
+        const login = ($("login-input") && $("login-input").value || "").trim();
+        const password = $("password-input") && $("password-input").value;
+        if (!login || !password) {
+            setStatus("auth-status", "Введите логин и пароль.", "err");
+            return;
+        }
+        const isLogin = $("tab-login") && $("tab-login").classList.contains("active");
+        try {
+            setBusy(true);
+            if (isLogin) {
                 await apiLogin(login, password);
-                storeCreds(login, password);
-                $("current-user-label").textContent = login;
-                $("logout-btn").style.display = "inline-flex";
-                setAuthStatus({
-                    ok: true,
-                    text: "Авторизация успешна. Можно создавать игры и делать ходы.",
-                    secondary: "Данные логина/пароля сохранены локально в браузере."
-                });
-                setGameStatus({
-                    state: undefined,
-                    text: "Нажмите «Новая игра», чтобы начать партию против ИИ.",
-                    secondary: "Или загрузите игру по UUID /game/:id, если ссылка уже есть."
-                });
-                setTurnIndicator("Готово к новой игре. Нажмите «Новая игра».");
-                logLine("Авторизация успешна для пользователя " + login);
+                saveCreds(login, password);
+                if ($("user-pill")) $("user-pill").textContent = login;
+                if ($("logout-btn")) $("logout-btn").style.display = "inline-block";
+                setStatus("auth-status", "Вход выполнен.", "ok");
+                setStatus("game-status", "Выберите режим и создайте игру или откройте по ссылке.", undefined);
+            } else {
+                await apiSignup(login, password);
+                setStatus("auth-status", "Аккаунт создан. Войдите.", "ok");
+                if ($("tab-login")) $("tab-login").click();
             }
         } catch (e) {
-            console.error(e);
-            logLine("Ошибка авторизации/регистрации: " + e.message);
-            setAuthStatus({
-                ok: false,
-                text: "Ошибка: " + e.message,
-                secondary: "Проверьте логин/пароль и доступность бэкенда."
-            });
+            setStatus("auth-status", "Ошибка: " + e.message, "err");
         } finally {
             setBusy(false);
         }
@@ -1581,133 +650,69 @@
 
     function handleLogout() {
         clearCreds();
-        $("current-user-label").textContent = "Гость";
-        $("logout-btn").style.display = "none";
-        setAuthStatus({
-            ok: undefined,
-            text: "Вы вышли из системы.",
-            secondary: "Авторизуйтесь снова, чтобы продолжить игру."
+        if ($("user-pill")) $("user-pill").textContent = "Гость";
+        if ($("logout-btn")) $("logout-btn").style.display = "none";
+        setStatus("auth-status", "Выход выполнен.", undefined);
+        setStatus("game-status", "Войдите, чтобы играть.", undefined);
+    }
+
+    function applyTab(mode) {
+        ["tab-login","tab-signup"].forEach((id, i) => {
+            const t = $(id);
+            if (t) t.classList.toggle("active", (mode === "login" && i === 0) || (mode === "signup" && i === 1));
         });
-        setGameStatus({
-            state: undefined,
-            text: "Авторизация сброшена. Игра по‑прежнему отображается, но новые запросы потребуют логин/пароль.",
-            secondary: "Слева можно снова войти тем же или другим пользователем."
-        });
-        setTurnIndicator("Ожидание авторизации…");
-        logLine("Пользователь вышел из системы, локальное хранилище очищено.");
+        const sb = $("auth-submit");
+        if (sb) sb.textContent = mode === "login" ? "Войти" : "Создать";
     }
 
-    // === Кнопки управления игрой ===
-    function handleReloadCurrent() {
-        if (!gameId) {
-            setGameStatus({
-                state: "err",
-                text: "Нет активной игры для перезагрузки.",
-                secondary: "Создайте игру или откройте по ссылке /game/:id."
-            });
-            return;
-        }
-        loadGameById(gameId);
-    }
-
-    function handleLoadFromUrl() {
-        const path = window.location.pathname || "/";
-        let id = "";
-        if (path.startsWith("/game/") && path.length > 6) {
-            id = path.substring(6);
-        }
-        const finalId = window.prompt("Введите UUID игры (или оставьте как есть):", id);
-        if (finalId === null) return;
-        loadGameById(finalId);
-    }
-
-    async function handleCopyLink() {
-        if (!gameId) {
-            setGameStatus({
-                state: "err",
-                text: "Сначала создайте игру, чтобы получить ссылку.",
-                secondary: "Нажмите «Новая игра», чтобы создать игру и получить UUID."
-            });
-            return;
-        }
-        const url = window.location.origin + "/game/" + gameId;
-        try {
-            await navigator.clipboard.writeText(url);
-            setGameStatus({
-                state: "ok",
-                text: "Ссылка скопирована в буфер обмена.",
-                secondary: url
-            });
-            logLine("Ссылка на игру скопирована: " + url);
-        } catch {
-            setGameStatus({
-                state: "ok",
-                text: "Не удалось скопировать автоматически, но вы можете вручную выделить ссылку ниже.",
-                secondary: url
-            });
-        }
-    }
-
-    // === Инициализация ===
-    function initFromStorage() {
-        const creds = getStoredCreds();
-        if (creds) {
-            $("login-input").value = creds.login;
-            $("current-user-label").textContent = creds.login;
-            $("logout-btn").style.display = "inline-flex";
-            setAuthStatus({
-                ok: true,
-                text: "Найдены сохранённые данные пользователя <b>" + creds.login + "</b>.",
-                secondary: "Можно сразу создавать игры или обновить пароль и войти снова."
-            });
-            setGameStatus({
-                state: undefined,
-                text: "Нажмите «Новая игра» или загрузите существующую по UUID.",
-                secondary: "При ошибке авторизации просто войдите снова — localStorage можно очистить кнопкой «Выйти»."
-            });
-            setTurnIndicator("Готово к новой игре. Нажмите «Новая игра».");
-            logLine("Найдены локальные данные пользователя " + creds.login + ".");
-        } else {
-            setAuthStatus({
-                ok: undefined,
-                text: "Введите логин и пароль, чтобы войти или зарегистрироваться.",
-                secondary: "Данные логина/пароля хранятся локально только для вашего браузера."
-            });
-            setTurnIndicator("Ожидание авторизации…");
-        }
-    }
-
-    function initFromUrl() {
-        const path = window.location.pathname || "/";
-        if (path.startsWith("/game/") && path.length > 6) {
-            const id = path.substring(6).split("/")[0].split("?")[0].trim();
-            if (id && id.length >= 32) {
-                setGameId(id);
-                loadGameById(id);
-            }
-        }
-    }
-
-    function bindEvents() {
-        $("tab-login").addEventListener("click", () => applyAuthMode("login"));
-        $("tab-signup").addEventListener("click", () => applyAuthMode("signup"));
-        $("auth-form").addEventListener("submit", handleAuthSubmit);
-        $("logout-btn").addEventListener("click", handleLogout);
-
-        $("new-game-btn").addEventListener("click", createNewGame);
-        $("reload-current-btn").addEventListener("click", handleReloadCurrent);
-        $("from-url-btn").addEventListener("click", handleLoadFromUrl);
-        $("copy-link-btn").addEventListener("click", handleCopyLink);
-    }
-
-    window.addEventListener("load", () => {
+    function init() {
         renderBoard();
-        applyAuthMode("login");
-        initFromStorage();
-        bindEvents();
-        initFromUrl();
-        logLine("Фронтенд XO Arena инициализирован. Готово к работе с существующим Go‑бэкендом.");
-    });
+        const creds = getCreds();
+        if (creds) {
+            if ($("login-input")) $("login-input").value = creds.login;
+            if ($("user-pill")) $("user-pill").textContent = creds.login;
+            if ($("logout-btn")) $("logout-btn").style.display = "inline-block";
+            setStatus("auth-status", "Авторизованы как " + creds.login + ".", "ok");
+        }
+        $("mode-tabs") && $("mode-tabs").querySelectorAll(".mode-tab").forEach(btn => {
+            btn.addEventListener("click", () => {
+                $("mode-tabs").querySelectorAll(".mode-tab").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+            });
+        });
+        $("auth-form") && $("auth-form").addEventListener("submit", handleAuthSubmit);
+        $("logout-btn") && $("logout-btn").addEventListener("click", handleLogout);
+        $("tab-login") && $("tab-login").addEventListener("click", () => applyTab("login"));
+        $("tab-signup") && $("tab-signup").addEventListener("click", () => applyTab("signup"));
+        $("new-game-btn") && $("new-game-btn").addEventListener("click", createGame);
+        $("reload-btn") && $("reload-btn").addEventListener("click", () => gameId ? loadGame(gameId) : setStatus("game-status", "Сначала создайте или откройте игру.", "err"));
+        $("join-btn") && $("join-btn").addEventListener("click", joinGame);
+        $("copy-link-btn") && $("copy-link-btn").addEventListener("click", async () => {
+            if (!gameId) { setStatus("game-status", "Нет активной игры.", "err"); return; }
+            const url = API_BASE + "/game/" + gameId;
+            try {
+                await navigator.clipboard.writeText(url);
+                setStatus("game-status", "Ссылка скопирована.", "ok");
+            } catch (_) { setStatus("game-status", "Ссылка: " + url, "ok"); }
+        });
+        $("refresh-games-btn") && $("refresh-games-btn").addEventListener("click", refreshGamesList);
+
+        const path = window.location.pathname || "";
+        if (path.startsWith("/game/") && path.length > 6) {
+            const id = path.slice(6);
+            loadGame(id);
+        } else {
+            updateTurnUI();
+        }
+
+        if (creds) {
+            $("available-block") && (($("available-block").style.display = "block"), refreshGamesList());
+        }
+        logLine("Фронт загружен. Режимы: против компьютера, на двоих.");
+    }
+
+    window.addEventListener("load", init);
+})();
 </script>
 </body>
 </html>
