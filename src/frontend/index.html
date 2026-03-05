@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Крестики‑нолики — на двоих и против компьютера</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --panel: #161b22;
+            --border: #1f242c;
+            --text: #e6edf3;
+            --text-muted: #9ea7b3;
+            --accent: #3b82f6;
+            --accent-2: #10b981;
+            --danger: #ef4444;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            display: flex;
+            justify-content: center;
+            padding: 24px 12px 32px;
+        }
+        .page { width: min(1080px, 100%); display: grid; gap: 16px; }
+        header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .title { font-size: 20px; font-weight: 700; }
+        .muted { color: var(--text-muted); font-size: 13px; }
+        main { display: grid; gap: 16px; grid-template-columns: 300px 1fr; }
+        @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .card h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; }
+        .form { display: grid; gap: 10px; }
+        label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px; }
+        input {
+            width: 100%;
+            padding: 9px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0b0f14;
+            color: var(--text);
+            font-size: 14px;
+        }
+        input:focus { outline: 1px solid var(--accent); border-color: var(--accent); }
+        .tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .tab {
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .tab.active { background: #0b0f14; color: var(--text); }
+        .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+        .btn {
+            border: none;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            color: white;
+        }
+        .primary { background: var(--accent); }
+        .secondary { background: #1f2937; color: var(--text); }
+        .pill { padding: 6px 10px; border-radius: 999px; background: #0b0f14; border: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
+        .status {
+            margin-top: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #0b0f14;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .status.ok { border-color: rgba(16, 185, 129, 0.6); color: var(--accent-2); }
+        .status.err { border-color: rgba(239, 68, 68, 0.7); color: var(--danger); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .mode-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+        .mode-tab {
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0b0f14;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .mode-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .board {
+            margin: 0 auto;
+            width: min(360px, 90vw);
+            aspect-ratio: 1/1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 6px;
+        }
+        .cell {
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #0b0f14;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(36px, 6vw, 46px);
+            font-weight: 800;
+            color: var(--text);
+            cursor: pointer;
+        }
+        .cell.disabled { cursor: default; opacity: 0.7; }
+        .mark-x { color: #f97316; }
+        .mark-o { color: #22c55e; }
+        .log {
+            height: 100px;
+            overflow-y: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            padding: 8px;
+            background: #0b0f14;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: ui-monospace, monospace;
+        }
+        .games-list { margin-top: 8px; max-height: 180px; overflow-y: auto; }
+        .games-list ul { margin: 0; padding: 0; list-style: none; }
+        .games-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0b0f14;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        .games-list li span { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; }
+        .games-list .join-btn { padding: 4px 8px; font-size: 11px; }
+        footer { text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <header>
+        <div>
+            <div class="title">Крестики‑нолики</div>
+            <div class="muted">На двоих и против компьютера. Бекенд без изменений.</div>
+        </div>
+        <div class="pill" id="user-pill">Гость</div>
+    </header>
+
+    <main>
+        <section class="card" id="auth-card">
+            <h3>Авторизация</h3>
+            <div class="tabs" role="tablist">
+                <button type="button" class="tab active" id="tab-login">Вход</button>
+                <button type="button" class="tab" id="tab-signup">Регистрация</button>
+            </div>
+            <form class="form" id="auth-form" autocomplete="on">
+                <div>
+                    <label for="login-input">Логин</label>
+                    <input id="login-input" name="login" placeholder="player01" required>
+                </div>
+                <div>
+                    <label for="password-input">Пароль</label>
+                    <input id="password-input" name="password" type="password" placeholder="••••••" required>
+                </div>
+                <div class="row">
+                    <button type="submit" class="btn primary" id="auth-submit">Войти</button>
+                    <button type="button" class="btn secondary" id="logout-btn" style="display:none;">Выйти</button>
+                </div>
+            </form>
+            <div class="status" id="auth-status">Войдите или зарегистрируйтесь.</div>
+        </section>
+
+        <section class="card" id="game-card">
+            <div class="row">
+                <h3>Игра</h3>
+                <div class="pill" id="game-id">—</div>
+            </div>
+
+            <div class="mode-tabs" id="mode-tabs">
+                <button type="button" class="mode-tab active" data-mode="ai">Против компьютера</button>
+                <button type="button" class="mode-tab" data-mode="pvp">На двоих</button>
+            </div>
+            <div class="grid-2">
+                <button type="button" class="btn primary" id="new-game-btn">Новая игра</button>
+                <button type="button" class="btn secondary" id="reload-btn">Обновить</button>
+                <button type="button" class="btn secondary" id="join-btn" style="display:none;">Присоединиться</button>
+                <button type="button" class="btn secondary" id="copy-link-btn">Копировать ссылку</button>
+            </div>
+            <div class="status" id="game-status">Выберите режим и нажмите «Новая игра».</div>
+
+            <div id="available-block" style="display:none;">
+                <h4 style="margin:0 0 6px; font-size:13px; color: var(--text-muted);">Доступные игры (на двоих)</h4>
+                <div class="games-list" id="games-list"></div>
+                <button type="button" class="btn secondary" id="refresh-games-btn" style="margin-top:6px;">Обновить список</button>
+            </div>
+
+            <div class="board" id="board"></div>
+            <div class="status" id="turn-indicator">—</div>
+            <div class="log" id="log"></div>
+        </section>
+    </main>
+    <footer>Режимы: против компьютера (POST /game?vs=computer), на двоих (POST /game, POST /game/:id/join). Ходы: POST /game/:id.</footer>
+</div>
+
+<script>
+(function () {
+    const API_BASE = window.location.origin;
+    const $ = (id) => document.getElementById(id);
+
+    const STATE = { Waiting: 0, TurnX: 1, TurnO: 2, Draw: 3, WinX: 4, WinO: 5 };
+
+    function logLine(msg) {
+        const el = $("log");
+        const line = document.createElement("div");
+        line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        el.appendChild(line);
+        el.scrollTop = el.scrollHeight;
+    }
+
+    function setStatus(id, text, kind) {
+        const el = $(id);
+        if (!el) return;
+        el.textContent = text;
+        el.classList.remove("ok", "err");
+        if (kind === "ok") el.classList.add("ok");
+        if (kind === "err") el.classList.add("err");
+    }
+
+    const storageKey = "xoCreds";
+    // Храним креды в sessionStorage, чтобы каждая вкладка могла быть под своим пользователем
+    function getCreds() {
+        try {
+            const s = window.sessionStorage;
+            const raw = s.getItem(storageKey);
+            if (!raw) return null;
+            const p = JSON.parse(raw);
+            if (p.login && p.password) return p;
+        } catch (_) {}
+        return null;
+    }
+    function saveCreds(login, password) {
+        try {
+            window.sessionStorage.setItem(storageKey, JSON.stringify({ login, password }));
+        } catch (_) {}
+    }
+    function clearCreds() {
+        try {
+            window.sessionStorage.removeItem(storageKey);
+        } catch (_) {}
+    }
+    function basicHeader(login, password) { return "Basic " + btoa(login + ":" + password); }
+
+    let gameId = null;
+    let board = [[0,0,0],[0,0,0],[0,0,0]];
+    let gameOver = false;
+    let state = STATE.Waiting;
+    let vsAI = true;
+    let player1 = null;
+    let player2 = null;
+    let busy = false;
+    let createdThisSession = false;
+    let pollTimer = null;
+
+    function setBusy(v) {
+        busy = v;
+        ["auth-submit","new-game-btn","reload-btn","join-btn","copy-link-btn","refresh-games-btn"].forEach(id => {
+            const e = $(id);
+            if (e) e.disabled = v;
+        });
+    }
+
+    function applyGameData(data) {
+        if (!data) return;
+        gameId = data.id || gameId;
+        if (data.board) board = data.board.map(r => [...r]);
+        gameOver = !!data.gameOver;
+        if (typeof data.state === "number") state = data.state;
+        if (typeof data.vsAI === "boolean") vsAI = data.vsAI;
+        if (data.player1) player1 = data.player1;
+        if (data.player2 !== undefined) player2 = data.player2;
+        if (state === STATE.TurnO && !player2) vsAI = true;
+    }
+
+    function canMove() {
+        if (gameOver || busy || !gameId) return false;
+        if (state === STATE.Waiting || state === STATE.Draw || state === STATE.WinX || state === STATE.WinO) return false;
+        if (vsAI) return state === STATE.TurnX;
+        return state === STATE.TurnX || state === STATE.TurnO;
+    }
+
+    function whoseTurnStr() {
+        if (state === STATE.TurnX) return vsAI ? "Ваш ход (X)" : "Ход X";
+        if (state === STATE.TurnO) return vsAI ? "Ход компьютера…" : "Ход O";
+        if (state === STATE.Waiting) return "Ожидание второго игрока";
+        if (state === STATE.WinX) return "Победа X";
+        if (state === STATE.WinO) return vsAI ? "Победа компьютера" : "Победа O";
+        if (state === STATE.Draw) return "Ничья";
+        return "—";
+    }
+
+    function renderBoard() {
+        const container = $("board");
+        container.innerHTML = "";
+        for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+                const cell = document.createElement("div");
+                cell.className = "cell";
+                cell.dataset.row = r;
+                cell.dataset.col = c;
+                cell.addEventListener("click", () => handleCell(r, c));
+                container.appendChild(cell);
+            }
+        }
+        updateBoardView();
+    }
+
+    function updateBoardView() {
+        const cells = $("board").children;
+        for (let i = 0; i < 9; i++) {
+            const r = Math.floor(i / 3), c = i % 3;
+            const v = board[r][c];
+            const cell = cells[i];
+            cell.classList.toggle("disabled", gameOver || !canMove());
+            cell.textContent = v === 1 ? "X" : v === 2 ? "O" : "";
+            cell.classList.toggle("mark-x", v === 1);
+            cell.classList.toggle("mark-o", v === 2);
+        }
+    }
+
+    function stopPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    async function pollGameOnce() {
+        if (!gameId || vsAI || gameOver || busy) return;
+        try {
+            const data = await apiGetGame(gameId);
+            applyGameData(data);
+            updateBoardView();
+            updateTurnUI();
+        } catch (_) {
+            // игнорируем ошибки поллинга, чтобы не спамить статусами
+        }
+    }
+
+    function startPolling() {
+        stopPolling();
+        if (!gameId || vsAI || gameOver) return;
+        pollTimer = setInterval(pollGameOnce, 2000);
+    }
+
+    function updateTurnUI() {
+        setStatus("turn-indicator", whoseTurnStr(), gameOver ? (state === STATE.WinX ? "ok" : state === STATE.WinO ? "err" : "ok") : undefined);
+        const joinBtn = $("join-btn");
+        if (joinBtn) {
+            joinBtn.style.display = (state === STATE.Waiting && gameId) ? "inline-block" : "none";
+        }
+        if (gameOver) {
+            stopPolling();
+        }
+        updateBoardView();
+    }
+
+    async function apiSignup(login, password) {
+        const res = await fetch(API_BASE + "/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: JSON.stringify({
+                login: login,
+                password: password
+            })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Ошибка регистрации");
+        return data;
+    }
+
+    async function apiLogin(login, password) {
+        console.log("apiLogin вызвана с аргументами:");
+        console.log("login:", login, typeof login);
+        console.log("password:", password, typeof password);
+
+        if (!login || !password) {
+            console.warn("Логин или пароль пустой/undefined — запрос не отправится корректно");
+        }
+
+        const payload = {
+            login: login,
+            password: password
+        };
+
+        console.log("Отправляемый payload:", payload);
+        console.log("JSON body:", JSON.stringify(payload));
+
+        const res = await fetch(API_BASE + "/login", {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        console.log("Статус ответа:", res.status);
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error) {
+            console.error("Ошибка от сервера:", data.error);
+            throw new Error(data.error || "Ошибка входа");
+        }
+
+        return data;
+    }
+
+    async function apiCreateGame(vsComputer) {
+        const creds = getCreds();
+        if (!creds) throw new Error("Нужна авторизация");
+        const url = vsComputer ? API_BASE + "/game?vs=computer" : API_BASE + "/game";
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Authorization": basicHeader(creds.login, creds.password), "Accept": "application/json" }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Не удалось создать игру");
+        return data;
+    }
+
+    async function apiGetGame(id) {
+        const creds = getCreds();
+        if (!creds) throw new Error("Нужна авторизация");
+        const res = await fetch(API_BASE + "/game/" + encodeURIComponent(id), {
+            headers: { "Authorization": basicHeader(creds.login, creds.password), "Accept": "application/json" }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Не удалось загрузить игру");
+        return data;
+    }
+
+    async function apiJoinGame(id) {
+        const creds = getCreds();
+        if (!creds) throw new Error("Нужна авторизация");
+        const res = await fetch(API_BASE + "/game/" + encodeURIComponent(id) + "/join", {
+            method: "POST",
+            headers: { "Authorization": basicHeader(creds.login, creds.password), "Accept": "application/json" }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Не удалось присоединиться");
+        return data;
+    }
+
+    async function apiMakeMove(id, boardState, currentPlayer) {
+        const creds = getCreds();
+        if (!creds) throw new Error("Нужна авторизация");
+        const res = await fetch(API_BASE + "/game/" + encodeURIComponent(id), {
+            method: "POST",
+            headers: {
+                "Authorization": basicHeader(creds.login, creds.password),
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({ id, board: boardState, currentPlayer })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Ошибка хода");
+        return data;
+    }
+
+    async function apiAvailableGames() {
+        const creds = getCreds();
+        if (!creds) throw new Error("Нужна авторизация");
+        const res = await fetch(API_BASE + "/games", {
+            headers: { "Authorization": basicHeader(creds.login, creds.password), "Accept": "application/json" }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Не удалось загрузить список");
+        return Array.isArray(data) ? data : (data.games || []);
+    }
+
+    async function handleCell(r, c) {
+        if (!canMove() || board[r][c] !== 0) return;
+        const sign = state === STATE.TurnX ? 1 : 2;
+        const prev = board[r][c];
+        board[r][c] = sign;
+        updateBoardView();
+        setStatus("game-status", "Отправка хода…", undefined);
+        setStatus("turn-indicator", "Ждём ответ сервера…", undefined);
+
+        try {
+            setBusy(true);
+            const data = await apiMakeMove(gameId, board.map(x => x.slice()), sign);
+            applyGameData(data);
+
+            // Для игр против компьютера бэкенд сначала записывает ход ИИ в БД,
+            // а в ответ может вернуть ещё старое состояние. Добираем актуальное
+            // состояние отдельным GET, чтобы увидеть нолик.
+            if (vsAI && gameId) {
+                try {
+                    const fresh = await apiGetGame(gameId);
+                    applyGameData(fresh);
+                } catch (_) {}
+            }
+
+            updateBoardView();
+            updateTurnUI();
+
+            if (data.gameOver) {
+                if (data.winner === 1) setStatus("game-status", "Победа X!", "ok");
+                else if (data.winner === 2) setStatus("game-status", vsAI ? "Победа компьютера." : "Победа O.", vsAI ? "err" : "ok");
+                else setStatus("game-status", "Ничья.", "ok");
+            } else {
+                setStatus("game-status", "Ход принят.", "ok");
+            }
+            logLine("Ход " + (sign === 1 ? "X" : "O") + " (" + r + "," + c + ")");
+        } catch (e) {
+            board[r][c] = prev;
+            updateBoardView();
+            updateTurnUI();
+            logLine("Ошибка хода: " + e.message);
+            setStatus("game-status", "Ошибка: " + e.message, "err");
+            try {
+                const data = await apiGetGame(gameId);
+                applyGameData(data);
+                updateBoardView();
+                updateTurnUI();
+            } catch (_) {}
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function createGame() {
+        const vsComputer = ($("mode-tabs") && $("mode-tabs").querySelector(".mode-tab.active")?.dataset.mode === "ai");
+        try {
+            setBusy(true);
+            setStatus("game-status", "Создаём игру…", undefined);
+            const data = await apiCreateGame(vsComputer);
+            applyGameData(data);
+            createdThisSession = true;
+            if ($("game-id")) $("game-id").textContent = gameId ? String(gameId).slice(0, 8) + "…" : "—";
+            history.replaceState(null, "", "/game/" + (gameId || ""));
+            updateTurnUI();
+            if (!vsAI) startPolling();
+            setStatus("game-status", vsComputer ? "Игра с компьютером создана. Ваш ход (X)." : "Игра на двоих создана. Поделитесь ссылкой.", "ok");
+            logLine("Создана игра " + (vsComputer ? "против ИИ" : "на двоих") + ": " + gameId);
+        } catch (e) {
+            logLine("Ошибка создания: " + e.message);
+            setStatus("game-status", "Ошибка: " + e.message, "err");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function loadGame(id) {
+        const clean = (id || "").trim().split("/")[0].split("?")[0];
+        if (!clean) {
+            setStatus("game-status", "Укажите ID игры.", "err");
+            return;
+        }
+        try {
+            setBusy(true);
+            setStatus("game-status", "Загрузка…", undefined);
+            const data = await apiGetGame(clean);
+            applyGameData(data);
+            createdThisSession = false;
+            if ($("game-id")) $("game-id").textContent = gameId ? String(gameId).slice(0, 8) + "…" : "—";
+            history.replaceState(null, "", "/game/" + (gameId || ""));
+            updateTurnUI();
+            if (!vsAI) startPolling();
+            setStatus("game-status", state === STATE.Waiting ? "Ожидание второго игрока. Поделитесь ссылкой или нажмите «Присоединиться» у второго игрока." : "Игра загружена.", "ok");
+            logLine("Загружена игра " + gameId);
+        } catch (e) {
+            logLine("Ошибка загрузки: " + e.message);
+            setStatus("game-status", "Ошибка: " + e.message, "err");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function joinGame() {
+        if (!gameId) return;
+        try {
+            setBusy(true);
+            setStatus("game-status", "Присоединяемся…", undefined);
+            await apiJoinGame(gameId);
+            const data = await apiGetGame(gameId);
+            applyGameData(data);
+            updateTurnUI();
+            setStatus("game-status", "Вы второй игрок (O). Ждите ход X или начинайте, если уже ваша очередь.", "ok");
+            logLine("Присоединились к игре " + gameId);
+        } catch (e) {
+            logLine("Ошибка присоединения: " + e.message);
+            setStatus("game-status", "Ошибка: " + e.message, "err");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function refreshGamesList() {
+        try {
+            setBusy(true);
+            const list = await apiAvailableGames();
+            const wrap = $("games-list");
+            const block = $("available-block");
+            if (!wrap || !block) return;
+            block.style.display = "block";
+            wrap.innerHTML = "";
+            const ul = document.createElement("ul");
+            list.forEach(g => {
+                const li = document.createElement("li");
+                const id = g.id || g.ID;
+                const vs = g.vsAI || g.vsAi;
+                if (vs) return;
+                li.innerHTML = "<span>Игра " + (id ? String(id).slice(0, 8) + "…" : "?") + "</span>";
+                const a = document.createElement("a");
+                a.href = "/game/" + (id || "");
+                a.className = "btn secondary join-btn";
+                a.textContent = "Открыть";
+                a.onclick = (ev) => { ev.preventDefault(); history.pushState(null, "", "/game/" + id); loadGame(id); };
+                li.appendChild(a);
+                ul.appendChild(li);
+            });
+            wrap.appendChild(ul);
+            if (list.length === 0) wrap.innerHTML = "<p class='muted' style='margin:0; font-size:12px;'>Нет доступных игр. Создайте игру «На двоих».</p>";
+            setStatus("game-status", "Список обновлён.", "ok");
+        } catch (e) {
+            setStatus("game-status", "Ошибка списка: " + e.message, "err");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function handleAuthSubmit(ev) {
+        ev.preventDefault();
+        if (busy) return;
+        const login = ($("login-input") && $("login-input").value || "").trim();
+        const password = $("password-input") && $("password-input").value;
+        if (!login || !password) {
+            setStatus("auth-status", "Введите логин и пароль.", "err");
+            return;
+        }
+        const isLogin = $("tab-login") && $("tab-login").classList.contains("active");
+        try {
+            setBusy(true);
+            if (isLogin) {
+                await apiLogin(login, password);
+                saveCreds(login, password);
+                if ($("user-pill")) $("user-pill").textContent = login;
+                if ($("logout-btn")) $("logout-btn").style.display = "inline-block";
+                setStatus("auth-status", "Вход выполнен.", "ok");
+                setStatus("game-status", "Выберите режим и создайте игру или откройте по ссылке.", undefined);
+            } else {
+                await apiSignup(login, password);
+                setStatus("auth-status", "Аккаунт создан. Войдите.", "ok");
+                if ($("tab-login")) $("tab-login").click();
+            }
+        } catch (e) {
+            setStatus("auth-status", "Ошибка: " + e.message, "err");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    function handleLogout() {
+        clearCreds();
+        if ($("user-pill")) $("user-pill").textContent = "Гость";
+        if ($("logout-btn")) $("logout-btn").style.display = "none";
+        setStatus("auth-status", "Выход выполнен.", undefined);
+        setStatus("game-status", "Войдите, чтобы играть.", undefined);
+    }
+
+    function applyTab(mode) {
+        ["tab-login","tab-signup"].forEach((id, i) => {
+            const t = $(id);
+            if (t) t.classList.toggle("active", (mode === "login" && i === 0) || (mode === "signup" && i === 1));
+        });
+        const sb = $("auth-submit");
+        if (sb) sb.textContent = mode === "login" ? "Войти" : "Создать";
+    }
+
+    function init() {
+        renderBoard();
+        const creds = getCreds();
+        if (creds) {
+            if ($("login-input")) $("login-input").value = creds.login;
+            if ($("user-pill")) $("user-pill").textContent = creds.login;
+            if ($("logout-btn")) $("logout-btn").style.display = "inline-block";
+            setStatus("auth-status", "Авторизованы как " + creds.login + ".", "ok");
+        }
+        $("mode-tabs") && $("mode-tabs").querySelectorAll(".mode-tab").forEach(btn => {
+            btn.addEventListener("click", () => {
+                $("mode-tabs").querySelectorAll(".mode-tab").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+            });
+        });
+        $("auth-form") && $("auth-form").addEventListener("submit", handleAuthSubmit);
+        $("logout-btn") && $("logout-btn").addEventListener("click", handleLogout);
+        $("tab-login") && $("tab-login").addEventListener("click", () => applyTab("login"));
+        $("tab-signup") && $("tab-signup").addEventListener("click", () => applyTab("signup"));
+        $("new-game-btn") && $("new-game-btn").addEventListener("click", createGame);
+        $("reload-btn") && $("reload-btn").addEventListener("click", () => gameId ? loadGame(gameId) : setStatus("game-status", "Сначала создайте или откройте игру.", "err"));
+        $("join-btn") && $("join-btn").addEventListener("click", joinGame);
+        $("copy-link-btn") && $("copy-link-btn").addEventListener("click", async () => {
+            if (!gameId) { setStatus("game-status", "Нет активной игры.", "err"); return; }
+            const url = API_BASE + "/game/" + gameId;
+            try {
+                await navigator.clipboard.writeText(url);
+                setStatus("game-status", "Ссылка скопирована.", "ok");
+            } catch (_) { setStatus("game-status", "Ссылка: " + url, "ok"); }
+        });
+        $("refresh-games-btn") && $("refresh-games-btn").addEventListener("click", refreshGamesList);
+
+        const path = window.location.pathname || "";
+        if (path.startsWith("/game/") && path.length > 6) {
+            const id = path.slice(6);
+            loadGame(id);
+        } else {
+            updateTurnUI();
+        }
+
+        if (creds) {
+            $("available-block") && (($("available-block").style.display = "block"), refreshGamesList());
+        }
+        logLine("Фронт загружен. Режимы: против компьютера, на двоих.");
+    }
+
+    window.addEventListener("load", init);
+})();
+</script>
+</body>
+</html>

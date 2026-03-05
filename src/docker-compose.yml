@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: school21
+    ports:
+      - "5433:5432"           # 5433 на хосте → 5432 внутри контейнера
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  tic-tac-toe:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - DSN=postgres://postgres:123@db:5432/school21?sslmode=disable
+      - PORT=8080
+      - JWT_SECRET=hello
+    depends_on:
+      db:
+        condition: service_healthy
+    # Если хочешь видеть логи goose миграций — оставь tty и stdin
+    tty: true
+    stdin_open: true
+
+volumes:
+  pgdata:
